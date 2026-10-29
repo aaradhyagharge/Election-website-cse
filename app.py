@@ -19,6 +19,14 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # Auto-seed initial demo accounts and elections if database is fresh (ensures Render works out of the box)
+    try:
+        from models import User
+        if User.query.first() is None:
+            from init_db import seed_database
+            seed_database()
+    except Exception as e:
+        print(f"[NOTE] Auto-seed check: {e}")
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -836,6 +844,5 @@ def admin_audit_logs():
 # -------------------------------------------------------------
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
