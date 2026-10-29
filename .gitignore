@@ -40,3 +40,4 @@ ENV/
 
 # Local databases (Render seeds cleanly on build/startup)
 *.db-journal
+
