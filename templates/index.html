@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Election Candidate Smart Declaration Portal{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-banner">
+    <h1>Election Candidate Smart Declaration Portal</h1>
+    <p>
+        An integrated digital ecosystem empowering candidates across India to register, file dynamic nomination papers, 
+        digitally declare assets and liabilities (Form 26 Affidavit), and enable Returning Officers (RO) and Assistant Returning 
+        Officers (ARO) to conduct transparent statutory scrutiny with full audit traceability.
+    </p>
+    <div class="hero-actions">
+        {% if current_user %}
+            {% if current_user.role == 'candidate' %}
+                <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-warning btn-lg">Go to Candidate Dashboard &rarr;</a>
+                <a href="{{ url_for('nomination_new') }}" class="btn btn-secondary btn-lg">File New Nomination Paper</a>
+            {% elif current_user.role in ['ro', 'aro'] %}
+                <a href="{{ url_for('officer_dashboard') }}" class="btn btn-warning btn-lg">Open Scrutiny Workbench &rarr;</a>
+            {% elif current_user.role == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning btn-lg">Open Admin Control Panel &rarr;</a>
+            {% endif %}
+        {% else %}
+            <a href="{{ url_for('register') }}" class="btn btn-warning btn-lg">Candidate Self-Registration</a>
+            <a href="{{ url_for('login') }}" class="btn btn-secondary btn-lg">Official / Candidate Login</a>
+            <a href="{{ url_for('track_status') }}" class="btn btn-secondary btn-lg">Track Nomination Status</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 1-Click Demo Evaluation Box for College Viva -->
+<div class="demo-box">
+    <h4>⚡ College Demonstration Quick-Fill Accounts (One-Click Sign-In for Viva)</h4>
+    <p style="font-size: 13px; color: #713f12; margin-bottom: 12px;">
+        Click any role button below to instantly sign in with pre-seeded demo accounts and test the full end-to-end workflow:
+    </p>
+    <div class="demo-pills-row">
+        <a href="{{ url_for('quick_login', role='candidate_rajesh') }}" class="btn btn-sm btn-primary">
+            👤 Candidate: Rajesh Kumar (Has Submitted App for Scrutiny)
+        </a>
+        <a href="{{ url_for('quick_login', role='candidate_priya') }}" class="btn btn-sm btn-secondary">
+            👤 Candidate: Priya Sharma (Fresh Account to Fill Form)
+        </a>
+        <a href="{{ url_for('quick_login', role='ro') }}" class="btn btn-sm btn-success">
+            🏛️ Returning Officer (RO) New Delhi
+        </a>
+        <a href="{{ url_for('quick_login', role='aro') }}" class="btn btn-sm btn-warning">
+            🛡️ Authorized ARO New Delhi
+        </a>
+        <a href="{{ url_for('quick_login', role='admin') }}" class="btn btn-sm btn-danger">
+            ⚙️ Chief System Administrator
+        </a>
+    </div>
+</div>
+
+<!-- System Metrics Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🗳️</div>
+        <div>
+            <div class="stat-number">{{ stats.total_elections }}</div>
+            <div class="stat-label">Active Election Notifications</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📍</div>
+        <div>
+            <div class="stat-number">{{ stats.total_constituencies }}</div>
+            <div class="stat-label">Mapped Constituencies</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div>
+            <div class="stat-number">{{ stats.total_nominations }}</div>
+            <div class="stat-label">Nominations Filed</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div>
+            <div class="stat-number">{{ stats.accepted_nominations }}</div>
+            <div class="stat-label">Accepted Nominations</div>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 30px;">
+    <!-- Active Elections Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📢 Current Election Notifications Open for Nominations</h3>
+        </div>
+        <div class="card-body">
+            {% if elections %}
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Election Title</th>
+                                <th>Category</th>
+                                <th>Last Date for Nomination</th>
+                                <th>Scrutiny Date</th>
+                                <th>Security Deposit</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for el in elections %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ el.title }}</strong><br>
+                                        <span style="font-size: 12px; color: var(--text-secondary);">Min Age: {{ el.min_age }} yrs</span>
+                                    </td>
+                                    <td><span class="status-badge submitted">{{ el.category_label }}</span></td>
+                                    <td>{{ el.nomination_last_date.strftime('%d-%b-%Y') if el.nomination_last_date else 'TBD' }}</td>
+                                    <td>{{ el.scrutiny_date.strftime('%d-%b-%Y') if el.scrutiny_date else 'TBD' }}</td>
+                                    <td>₹{{ "{:,.0f}".format(el.security_deposit_general) }} <br><span style="font-size:11px; color:#16a34a;">(SC/ST: ₹{{ "{:,.0f}".format(el.security_deposit_sc_st) }})</span></td>
+                                    <td>
+                                        <a href="{{ url_for('nomination_new') }}" class="btn btn-primary btn-sm">Apply Now</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted);">No open elections currently available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Track Search Widget -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔍 Track Nomination Status</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                Enter your unique Application Receipt Number to inspect live scrutiny progression and download official affidavits.
+            </p>
+            <form action="{{ url_for('track_status') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label required">Application Number</label>
+                    <input type="text" name="app_no" class="form-control" placeholder="e.g. ECI-LS2026-DEL-0001" required>
+                    <div class="form-help">Try demo app no: <strong>ECI-LS2026-DEL-0001</strong></div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Inspect Status &rarr;</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Steps Section -->
+<div class="card">
+    <div class="card-header">
+        <h3>🏛️ Complete Statutory Nomination &amp; Scrutiny Workflow</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; text-align: center;">
+            <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 28px; margin-bottom: 8px;">1️⃣</div>
+                <h4 style="font-size: 14px; margin-bottom: 6px;">Candidate Registration</h4>
+                <p style="font-size: 12px; color: var(--text-secondary);">Register account with verified EPIC / Voter ID number, mobile number, and password credentials.</p>
+            </div>
+            <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 28px; margin-bottom: 8px;">2️⃣</div>
+                <h4 style="font-size: 14px; margin-bottom: 6px;">Dynamic Nomination Form</h4>
+                <p style="font-size: 12px; color: var(--text-secondary);">Select election category (Lok Sabha, Vidhan Sabha, Local Body). Form fields adapt with legal proposers requirement.</p>
+            </div>
+            <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 28px; margin-bottom: 8px;">3️⃣</div>
+                <h4 style="font-size: 14px; margin-bottom: 6px;">Smart Affidavit (Form 26)</h4>
+                <p style="font-size: 12px; color: var(--text-secondary);">Live auto-calculation of Movable Assets, Immovable Properties, and Liabilities with criminal case declaration.</p>
+            </div>
+            <div style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 28px; margin-bottom: 8px;">4️⃣</div>
+                <h4 style="font-size: 14px; margin-bottom: 6px;">RO / ARO Statutory Scrutiny</h4>
+                <p style="font-size: 12px; color: var(--text-secondary);">Returning Officer inspects documents, checks objections, and records formal Accepted/Rejected orders under Section 36 RPA 1951.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

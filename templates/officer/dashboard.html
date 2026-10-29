@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Scrutiny Workbench - Returning Officer Portal{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">
+            Returning Officer (RO) &amp; ARO Scrutiny Workbench
+        </h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Officer: <strong>{{ current_user.full_name }}</strong> ({{ current_user.designation or current_user.role.upper() }}) | 
+            Assigned Constituency: 
+            <strong>
+                {% if current_user.assigned_constituency %}
+                    {{ current_user.assigned_constituency.name }} ({{ current_user.assigned_constituency.state }})
+                {% else %}
+                    All Constituencies (Supervisory)
+                {% endif %}
+            </strong>
+            {% if current_user.role == 'aro' %}
+                | <span class="badge" style="background:#fef3c7; color:#92400e; padding: 2px 6px; border-radius: 4px;">
+                    ARO Scrutiny Authority: {{ 'Legally Authorized' if current_user.is_aro_authorized_scrutiny else 'Verification Only' }}
+                </span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Scrutiny Metrics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#f1f5f9; color:#475569;">📋</div>
+        <div>
+            <div class="stat-number">{{ metrics.total }}</div>
+            <div class="stat-label">Total Assigned</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#2563eb;">📥</div>
+        <div>
+            <div class="stat-number">{{ metrics.submitted }}</div>
+            <div class="stat-label">Received / Pending</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#d97706;">🔍</div>
+        <div>
+            <div class="stat-number">{{ metrics.under_scrutiny }}</div>
+            <div class="stat-label">Under Active Scrutiny</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#16a34a;">✅</div>
+        <div>
+            <div class="stat-number">{{ metrics.accepted }}</div>
+            <div class="stat-label">Accepted Nominations</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fee2e2; color:#dc2626;">❌</div>
+        <div>
+            <div class="stat-number">{{ metrics.rejected }}</div>
+            <div class="stat-label">Rejected Nominations</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters & Search Toolbar -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body" style="padding: 14px 20px;">
+        <form method="GET" action="{{ url_for('officer_dashboard') }}" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <input type="text" name="q" class="form-control" placeholder="Search by Candidate Name, Application No, or Party" value="{{ search_q }}">
+            </div>
+            <div>
+                <select name="status" class="form-control" onchange="this.form.submit()">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                    <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Received / New</option>
+                    <option value="under_scrutiny" {% if status_filter == 'under_scrutiny' %}selected{% endif %}>Under Scrutiny</option>
+                    <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Accepted</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            {% if search_q or status_filter != 'all' %}
+                <a href="{{ url_for('officer_dashboard') }}" class="btn btn-secondary btn-sm">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Candidate Nominations Table -->
+<div class="card">
+    <div class="card-header">
+        <h3>Nominations Lodged for Scrutiny</h3>
+    </div>
+    <div class="card-body">
+        {% if nominations %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Application No</th>
+                            <th>Candidate Particulars</th>
+                            <th>Party Affiliation</th>
+                            <th>Criminal Cases</th>
+                            <th>Net Worth Declared</th>
+                            <th>Current Status</th>
+                            <th>Submitted On</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nom in nominations %}
+                            <tr>
+                                <td>
+                                    <strong style="color: var(--primary-blue);">{{ nom.application_number }}</strong><br>
+                                    <span style="font-size: 11px; color: var(--text-muted);">{{ nom.constituency.name }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ nom.candidate.full_name }}</strong><br>
+                                    <span style="font-size: 12px; color: var(--text-secondary);">
+                                        Age: {{ nom.age or 'N/A' }} | EPIC: {{ nom.epic_number or 'N/A' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ nom.party_name or 'Independent' }}<br>
+                                    <span style="font-size: 11px; color: var(--text-muted);">{{ nom.party_type.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    {% if nom.has_criminal_cases or nom.has_convictions %}
+                                        <span class="status-badge rejected">Declared</span>
+                                    {% else %}
+                                        <span class="status-badge accepted">Clean</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set net = (nom.total_movable_assets + nom.total_immovable_assets) - nom.total_liabilities %}
+                                    <strong>₹{{ "{:,.2f}".format(net) }}</strong>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ nom.status }}">
+                                        {{ nom.status.replace('_', ' ').upper() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ nom.submission_timestamp.strftime('%d-%b-%Y %I:%M %p') if nom.submission_timestamp else 'N/A' }}
+                                </td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <a href="{{ url_for('officer_scrutiny', nomination_id=nom.id) }}" class="btn btn-primary btn-sm">
+                                        ⚖️ Scrutinize &rarr;
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
+                <p>No nomination applications found matching your criteria.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

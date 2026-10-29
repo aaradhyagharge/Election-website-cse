@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}System Audit Logs - Admin Console{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">Statutory Audit Logs &amp; Security Trail</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Tamper-evident record of all user registrations, logins, nomination drafts, filings, document verifications, and judicial scrutiny orders.
+        </p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Return to Admin Dashboard</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Audit Trail History</h3>
+    </div>
+    <div class="card-body">
+        {% if logs.items %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Timestamp (UTC)</th>
+                            <th>Action Type</th>
+                            <th>Actor / Role</th>
+                            <th>Nomination Ref</th>
+                            <th>Event Particulars</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs.items %}
+                            <tr>
+                                <td style="font-family: monospace; font-size: 12px; color: var(--text-muted);">#{{ log.id }}</td>
+                                <td style="white-space: nowrap; font-size: 12px; color: var(--text-secondary);">
+                                    {{ log.timestamp.strftime('%d-%b-%Y %H:%M:%S') }}
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if 'ACCEPTED' in log.action %}accepted{% elif 'REJECTED' in log.action %}rejected{% elif 'SUBMITTED' in log.action %}submitted{% else %}draft{% endif %}">
+                                        {{ log.action }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ log.actor.full_name if log.actor else 'System / Anonymous' }}</strong>
+                                    {% if log.actor %}
+                                        <br><span style="font-size: 11px; color: var(--text-muted);">{{ log.actor.role.upper() }} ({{ log.actor.email }})</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.nomination %}
+                                        <a href="{{ url_for('nomination_view', nomination_id=log.nomination_id) }}" style="color: var(--primary-blue); font-weight: 600;">
+                                            {{ log.nomination.application_number }}
+                                        </a>
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">-</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 13px;">{{ log.details }}</td>
+                                <td style="font-family: monospace; font-size: 12px; color: var(--text-muted);">{{ log.ip_address }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if logs.pages > 1 %}
+                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+                    {% if logs.has_prev %}
+                        <a href="{{ url_for('admin_audit_logs', page=logs.prev_num) }}" class="btn btn-secondary btn-sm">&laquo; Previous</a>
+                    {% endif %}
+                    
+                    <span style="font-size: 13px; padding: 6px 12px; color: var(--text-secondary);">
+                        Page {{ logs.page }} of {{ logs.pages }}
+                    </span>
+
+                    {% if logs.has_next %}
+                        <a href="{{ url_for('admin_audit_logs', page=logs.next_num) }}" class="btn btn-secondary btn-sm">Next &raquo;</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p style="color: var(--text-muted);">No audit events recorded.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

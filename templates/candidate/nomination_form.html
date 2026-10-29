@@ -1,0 +1,439 @@
+{% extends 'base.html' %}
+
+{% block title %}Nomination Paper & Form 26 - {{ nomination.application_number }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">Nomination Paper &amp; Smart Affidavit (Form 26)</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Application No: <strong>{{ nomination.application_number }}</strong> | 
+            Election: <strong>{{ nomination.election.title }}</strong> | 
+            Constituency: <strong>{{ nomination.constituency.name }}</strong> ({{ nomination.constituency.state }})
+        </p>
+    </div>
+    <div>
+        <span class="status-badge {{ nomination.status }}">
+            Status: {{ nomination.status.replace('_', ' ').upper() }}
+        </span>
+    </div>
+</div>
+
+<form action="{{ url_for('nomination_edit', nomination_id=nomination.id) }}" method="POST" enctype="multipart/form-data">
+    <!-- Section 1: Candidate Particulars -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 1: Candidate Particulars &amp; Electoral Roll Entry</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Candidate Full Name</label>
+                    <input type="text" class="form-control" value="{{ current_user.full_name }}" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Relation Type</label>
+                    <select name="relation_type" class="form-control" required>
+                        <option value="Father" {% if nomination.relation_type == 'Father' %}selected{% endif %}>Father's Name</option>
+                        <option value="Spouse" {% if nomination.relation_type == 'Spouse' %}selected{% endif %}>Spouse's Name</option>
+                        <option value="Mother" {% if nomination.relation_type == 'Mother' %}selected{% endif %}>Mother's Name</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Father / Spouse / Mother Full Name</label>
+                    <input type="text" name="father_or_spouse_name" class="form-control" value="{{ nomination.father_or_spouse_name or '' }}" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Date of Birth</label>
+                    <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" 
+                           value="{{ nomination.date_of_birth.strftime('%Y-%m-%d') if nomination.date_of_birth else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Calculated Age (Minimum: {{ nomination.election.min_age }} years)</label>
+                    <input type="text" id="calculated_age" class="form-control" data-min-age="{{ nomination.election.min_age }}" value="{{ nomination.age or '' }} years" readonly>
+                    <div id="age_warning" class="alert alert-danger" style="display: none; margin-top: 6px; padding: 6px 10px; font-size: 12px;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Gender</label>
+                    <select name="gender" class="form-control" required>
+                        <option value="Male" {% if nomination.gender == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if nomination.gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Third Gender" {% if nomination.gender == 'Third Gender' %}selected{% endif %}>Third Gender</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Social Category</label>
+                    <select name="candidate_category" class="form-control" required>
+                        <option value="GEN" {% if nomination.candidate_category == 'GEN' %}selected{% endif %}>General</option>
+                        <option value="SC" {% if nomination.candidate_category == 'SC' %}selected{% endif %}>Scheduled Caste (SC)</option>
+                        <option value="ST" {% if nomination.candidate_category == 'ST' %}selected{% endif %}>Scheduled Tribe (ST)</option>
+                        <option value="OBC" {% if nomination.candidate_category == 'OBC' %}selected{% endif %}>Other Backward Class (OBC)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">PAN Card Number</label>
+                    <input type="text" name="pan_number" class="form-control" value="{{ nomination.pan_number or '' }}" placeholder="ABCDE1234F" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Profession / Occupation</label>
+                    <input type="text" name="profession_or_occupation" class="form-control" value="{{ nomination.profession_or_occupation or '' }}" placeholder="e.g. Advocate, Farmer, Business">
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Highest Educational Qualification</label>
+                    <input type="text" name="highest_education" class="form-control" value="{{ nomination.highest_education or '' }}" placeholder="e.g. B.Tech Computer Science, Delhi University, 2018">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Present Postal Address</label>
+                    <textarea name="address" class="form-control" rows="2" required>{{ nomination.address or '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Permanent Address</label>
+                    <textarea name="permanent_address" class="form-control" rows="2" required>{{ nomination.permanent_address or nomination.address or '' }}</textarea>
+                </div>
+            </div>
+
+            <h4 style="font-size: 14px; margin: 16px 0 10px; color: var(--primary-blue); border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                Electoral Roll Registration Details (Where candidate is enrolled as a voter)
+            </h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">EPIC / Voter ID Card No</label>
+                    <input type="text" name="epic_number" class="form-control" value="{{ nomination.epic_number or current_user.identity_number or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">State of Enrollment</label>
+                    <input type="text" name="electoral_roll_state" class="form-control" value="{{ nomination.electoral_roll_state or nomination.constituency.state }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Constituency of Enrollment</label>
+                    <input type="text" name="electoral_roll_constituency" class="form-control" value="{{ nomination.electoral_roll_constituency or nomination.constituency.name }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Electoral Roll Part No</label>
+                    <input type="text" name="electoral_roll_part_no" class="form-control" value="{{ nomination.electoral_roll_part_no or '' }}" placeholder="Part No (e.g. 42)" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Electoral Roll Serial No</label>
+                    <input type="text" name="electoral_roll_serial_no" class="form-control" value="{{ nomination.electoral_roll_serial_no or '' }}" placeholder="Serial No (e.g. 158)" required>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Party Candidature & Dynamic Proposers -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 2: Political Party Candidature &amp; Elector Proposers</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Candidature Type</label>
+                    <select name="party_type" id="party_type" class="form-control" required>
+                        <option value="recognized_national" {% if nomination.party_type == 'recognized_national' %}selected{% endif %}>Recognized National Political Party</option>
+                        <option value="recognized_state" {% if nomination.party_type == 'recognized_state' %}selected{% endif %}>Recognized State Political Party</option>
+                        <option value="registered_unrecognized" {% if nomination.party_type == 'registered_unrecognized' %}selected{% endif %}>Registered Unrecognized Political Party</option>
+                        <option value="independent" {% if nomination.party_type == 'independent' %}selected{% endif %}>Independent Candidate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Political Party Name</label>
+                    <input type="text" name="party_name" class="form-control" value="{{ nomination.party_name or '' }}" placeholder="Party Name (Leave blank if Independent)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Allotted / Reserved Party Symbol</label>
+                    <input type="text" name="party_symbol" class="form-control" value="{{ nomination.party_symbol or '' }}" placeholder="Symbol Name">
+                </div>
+            </div>
+
+            <div id="proposers_notice" class="alert alert-info" style="font-size: 13px;">
+                <strong>Statutory Rule:</strong> Elector proposers must be enrolled voters in this constituency under Section 33 of the Representation of the People Act, 1951.
+            </div>
+
+            <h4 style="font-size: 14px; margin-bottom: 8px;">Subscribed Elector Proposers</h4>
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;">#</th>
+                            <th>Proposer Full Name</th>
+                            <th>EPIC / Voter ID Number</th>
+                            <th>Electoral Roll Part No</th>
+                            <th>Serial Number in Part</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proposers_rows_container">
+                        {% set p_list = nomination.get_proposers_list() %}
+                        {% for p in p_list %}
+                            <tr class="proposer-row">
+                                <td style="text-align: center; font-weight: bold;">{{ loop.index }}</td>
+                                <td><input type="text" name="prop_name[]" class="form-control" value="{{ p.name or '' }}" placeholder="Proposer Full Name" required></td>
+                                <td><input type="text" name="prop_epic[]" class="form-control" value="{{ p.epic or '' }}" placeholder="EPIC / Voter ID No" required></td>
+                                <td><input type="text" name="prop_part[]" class="form-control" value="{{ p.part_no or '' }}" placeholder="Electoral Part No" required></td>
+                                <td><input type="text" name="prop_serial[]" class="form-control" value="{{ p.serial_no or '' }}" placeholder="Serial No" required></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Criminal Antecedents Declaration -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 3: Criminal Antecedents Declaration (Form 26 Affidavit)</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                In accordance with Supreme Court directives and Section 33A of RPA 1951, full disclosure of pending cases and convictions is mandatory.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label required">Are there any pending criminal cases against you where charges have been framed?</label>
+                <div style="display: flex; gap: 20px; margin-top: 6px;">
+                    <label style="display: flex; align-items: center; gap: 6px;">
+                        <input type="radio" name="has_criminal_cases" value="no" {% if not nomination.has_criminal_cases %}checked{% endif %}>
+                        <span><strong>NO</strong> — Clean record declared</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px;">
+                        <input type="radio" name="has_criminal_cases" value="yes" {% if nomination.has_criminal_cases %}checked{% endif %}>
+                        <span><strong>YES</strong> — Pending cases exist</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Details of Pending Criminal Cases (Case No, Court, IPC Sections, Charges Framed)</label>
+                <textarea name="criminal_cases_details" class="form-control" rows="2" placeholder="If YES, provide FIR / Case No, IPC sections, and name of the Court. If NO, leave as 'Clean record'.">{{ nomination.criminal_cases_details or '' }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label required">Have you ever been convicted of an offense and sentenced to imprisonment?</label>
+                <div style="display: flex; gap: 20px; margin-top: 6px;">
+                    <label style="display: flex; align-items: center; gap: 6px;">
+                        <input type="radio" name="has_convictions" value="no" {% if not nomination.has_convictions %}checked{% endif %}>
+                        <span><strong>NO</strong> — No conviction record</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px;">
+                        <input type="radio" name="has_convictions" value="yes" {% if nomination.has_convictions %}checked{% endif %}>
+                        <span><strong>YES</strong> — Prior conviction</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Particulars of Conviction &amp; Sentence (if applicable)</label>
+                <textarea name="conviction_details" class="form-control" rows="2" placeholder="Details of offense and period of imprisonment (if any).">{{ nomination.conviction_details or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Smart Assets & Liabilities Calculator -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 4: Smart Declaration of Assets &amp; Liabilities (Form 26)</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                Enter declared amounts in Indian Rupees (₹). The portal automatically computes live sub-totals and net worth.
+            </p>
+
+            <h4 style="font-size: 15px; color: var(--primary-blue); margin-bottom: 10px;">A. Movable Assets (Self + Spouse + Dependents)</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">1. Cash in Hand (₹)</label>
+                    <input type="number" step="0.01" name="movable_cash" id="movable_cash" class="form-control" value="{{ nomination.movable_cash or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">2. Bank Deposits &amp; Accounts (₹)</label>
+                    <input type="number" step="0.01" name="movable_bank_deposits" id="movable_bank_deposits" class="form-control" value="{{ nomination.movable_bank_deposits or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">3. Bonds, Shares, Mutual Funds (₹)</label>
+                    <input type="number" step="0.01" name="movable_bonds_shares" id="movable_bonds_shares" class="form-control" value="{{ nomination.movable_bonds_shares or 0.0 }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">4. Motor Vehicles / Transport (₹)</label>
+                    <input type="number" step="0.01" name="movable_vehicles" id="movable_vehicles" class="form-control" value="{{ nomination.movable_vehicles or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">5. Jewellery, Gold &amp; Valuables (₹)</label>
+                    <input type="number" step="0.01" name="movable_jewellery" id="movable_jewellery" class="form-control" value="{{ nomination.movable_jewellery or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">6. Other Movable Assets (₹)</label>
+                    <input type="number" step="0.01" name="movable_other" id="movable_other" class="form-control" value="{{ nomination.movable_other or 0.0 }}">
+                </div>
+            </div>
+            <div style="background: #f1f5f9; padding: 10px 14px; border-radius: 6px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 24px;">
+                <span>Total Movable Assets:</span>
+                <span id="total_movable_display" style="color: var(--primary-blue);">₹ 0.00</span>
+            </div>
+
+            <h4 style="font-size: 15px; color: var(--primary-blue); margin-bottom: 10px;">B. Immovable Properties &amp; Land Holdings</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">1. Agricultural Land (Market Value in ₹)</label>
+                    <input type="number" step="0.01" name="immovable_agricultural" id="immovable_agricultural" class="form-control" value="{{ nomination.immovable_agricultural or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">2. Non-Agricultural Land (₹)</label>
+                    <input type="number" step="0.01" name="immovable_non_agricultural" id="immovable_non_agricultural" class="form-control" value="{{ nomination.immovable_non_agricultural or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">3. Commercial Buildings &amp; Shops (₹)</label>
+                    <input type="number" step="0.01" name="immovable_commercial" id="immovable_commercial" class="form-control" value="{{ nomination.immovable_commercial or 0.0 }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">4. Residential Apartments / Houses (₹)</label>
+                    <input type="number" step="0.01" name="immovable_residential" id="immovable_residential" class="form-control" value="{{ nomination.immovable_residential or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">5. Other Immovable Interests (₹)</label>
+                    <input type="number" step="0.01" name="immovable_other" id="immovable_other" class="form-control" value="{{ nomination.immovable_other or 0.0 }}">
+                </div>
+            </div>
+            <div style="background: #f1f5f9; padding: 10px 14px; border-radius: 6px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 24px;">
+                <span>Total Immovable Assets:</span>
+                <span id="total_immovable_display" style="color: var(--primary-blue);">₹ 0.00</span>
+            </div>
+
+            <h4 style="font-size: 15px; color: var(--primary-blue); margin-bottom: 10px;">C. Liabilities, Loans &amp; Government Dues</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">1. Bank Loans &amp; Financial Institutions (₹)</label>
+                    <input type="number" step="0.01" name="liabilities_bank_loans" id="liabilities_bank_loans" class="form-control" value="{{ nomination.liabilities_bank_loans or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">2. Government Dues (Taxes, Electricity, Municipal) (₹)</label>
+                    <input type="number" step="0.01" name="liabilities_govt_dues" id="liabilities_govt_dues" class="form-control" value="{{ nomination.liabilities_govt_dues or 0.0 }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">3. Other Private Liabilities (₹)</label>
+                    <input type="number" step="0.01" name="liabilities_other" id="liabilities_other" class="form-control" value="{{ nomination.liabilities_other or 0.0 }}">
+                </div>
+            </div>
+            <div style="background: #fee2e2; padding: 10px 14px; border-radius: 6px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 24px;">
+                <span style="color: #991b1b;">Total Declared Liabilities:</span>
+                <span id="total_liabilities_display" style="color: #991b1b;">₹ 0.00</span>
+            </div>
+
+            <!-- Net Worth Summary Banner -->
+            <div style="background: #ecfdf5; border: 2px solid #a7f3d0; padding: 16px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h4 style="color: #065f46; font-size: 16px;">Declared Net Worth (Total Assets minus Liabilities)</h4>
+                    <span style="font-size: 12px; color: #047857;">Live calculated for Form 26 Affidavit disclosure</span>
+                </div>
+                <div id="net_worth_display" style="font-size: 24px; font-weight: 800; color: #065f46;">
+                    ₹ 0.00
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: Security Deposit & Document Uploads -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 5: Statutory Security Deposit &amp; Document Uploads</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label class="form-label">Required Security Deposit</label>
+                    <input type="text" class="form-control" value="₹ {{ '{:,.2f}'.format(nomination.election.security_deposit_general) }} (General) / ₹ {{ '{:,.2f}'.format(nomination.election.security_deposit_sc_st) }} (SC/ST)" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Treasury Challan / Bank Reference Number</label>
+                    <input type="text" name="security_deposit_ref" class="form-control" value="{{ nomination.security_deposit_ref or '' }}" placeholder="e.g. SBI-CHALLAN-2026-XXXX" required>
+                    <div class="form-help">Enter receipt / challan transaction number</div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--primary-blue);">Upload Required Evidentiary Documents</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Candidate Photograph (Passport size JPG/PNG)</label>
+                    <input type="file" name="doc_photo" class="form-control" accept=".jpg,.jpeg,.png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Certified Voter ID / Electoral Roll Proof (PDF/Image)</label>
+                    <input type="file" name="doc_id_proof" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Signed Form 26 Affidavit (Sworn before Magistrate/Notary)</label>
+                    <input type="file" name="doc_form26" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Treasury Challan / Deposit Receipt</label>
+                    <input type="file" name="doc_deposit" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">SC/ST Caste Certificate (if applicable)</label>
+                    <input type="file" name="doc_caste" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+
+            {% if nomination.documents %}
+                <h4 style="font-size: 13px; margin: 16px 0 8px;">Uploaded Documents on Record:</h4>
+                <ul style="font-size: 13px; color: var(--text-secondary); margin-left: 20px;">
+                    {% for doc in nomination.documents %}
+                        <li>📄 <strong>{{ doc.title }}:</strong> {{ doc.filename }} ({{ doc.uploaded_at.strftime('%d-%b-%Y') }})</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section 6: Solemn Oath & Final Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Part 6: Solemn Declaration, Verification &amp; Filing</h3>
+        </div>
+        <div class="card-body">
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
+                <p style="font-size: 13px; line-height: 1.6; color: var(--text-primary);">
+                    <strong>Solemn Verification:</strong> I, the candidate named herein, do hereby solemnly affirm and state 
+                    under oath that the contents of this nomination paper and the accompanying Form 26 Affidavit are true, 
+                    complete, and correct to the best of my knowledge and belief, and no material fact has been concealed.
+                </p>
+                <div style="margin-top: 12px;">
+                    <label style="display: flex; align-items: flex-start; gap: 8px; font-weight: 600; font-size: 13px;">
+                        <input type="checkbox" name="declaration_accepted" value="1" {% if nomination.declaration_accepted %}checked{% endif %} required style="margin-top: 2px;">
+                        <span>I accept the statutory oath and solemn declaration.</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-secondary">&larr; Return to Dashboard</a>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" name="form_action" value="save_draft" class="btn btn-secondary btn-lg">
+                        💾 Save as Draft
+                    </button>
+                    <button type="submit" name="form_action" value="submit_nomination" class="btn btn-success btn-lg" onclick="return confirm('Are you sure you want to officially submit this nomination paper? Once submitted, it will be locked and submitted for scrutiny by the Returning Officer.')">
+                        🚀 Submit Nomination Paper &rarr;
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+

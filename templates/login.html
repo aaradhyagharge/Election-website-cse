@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Candidate & Officer Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 20px auto;">
+    <!-- Demo Quick Sign-in Shortcuts -->
+    <div class="demo-box">
+        <h4>⚡ Demo Quick Sign-In (For College Viva &amp; Evaluators)</h4>
+        <p style="font-size: 12px; color: #713f12; margin-bottom: 10px;">
+            Click any button below to immediately authenticate without typing credentials:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <a href="{{ url_for('quick_login', role='candidate_rajesh') }}" class="btn btn-sm btn-primary" style="justify-content: flex-start;">
+                👤 <strong>Candidate:</strong> Rajesh Kumar (Nomination Filed)
+            </a>
+            <a href="{{ url_for('quick_login', role='candidate_priya') }}" class="btn btn-sm btn-secondary" style="justify-content: flex-start;">
+                👤 <strong>Candidate:</strong> Priya Sharma (New Candidate)
+            </a>
+            <a href="{{ url_for('quick_login', role='ro') }}" class="btn btn-sm btn-success" style="justify-content: flex-start;">
+                🏛️ <strong>Returning Officer (RO):</strong> New Delhi
+            </a>
+            <a href="{{ url_for('quick_login', role='aro') }}" class="btn btn-sm btn-warning" style="justify-content: flex-start;">
+                🛡️ <strong>Authorized ARO:</strong> New Delhi
+            </a>
+            <a href="{{ url_for('quick_login', role='admin') }}" class="btn btn-sm btn-danger" style="justify-content: flex-start;">
+                ⚙️ <strong>System Administrator:</strong> ECI Simulation
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" style="text-align: center; display: block;">
+            <h2>Official &amp; Candidate Sign In</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                Secure role-based authentication portal
+            </p>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('login') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label required">Official / Registered Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="name@domain.com" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;">
+                    Secure Sign In &rarr;
+                </button>
+            </form>
+        </div>
+        <div class="card-footer" style="justify-content: center; font-size: 13px;">
+            <span>New election candidate? <a href="{{ url_for('register') }}" style="color: var(--primary-blue); font-weight: 600;">Register Account Here</a></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Judicial Scrutiny - {{ nomination.application_number }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">Statutory Scrutiny Workbench (Sec 36, RPA 1951)</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Application No: <strong>{{ nomination.application_number }}</strong> | 
+            Candidate: <strong>{{ nomination.candidate.full_name }}</strong> | 
+            Constituency: <strong>{{ nomination.constituency.name }}</strong>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="status-badge {{ nomination.status }}" style="font-size: 13px; padding: 6px 14px;">
+            {{ nomination.status.replace('_', ' ').upper() }}
+        </span>
+        <a href="{{ url_for('download_nomination_pdf', nomination_id=nomination.id) }}" class="btn btn-primary btn-sm">
+            📄 View Form 26 PDF
+        </a>
+    </div>
+</div>
+
+<!-- Statutory Status Controls -->
+{% if nomination.status == 'submitted' %}
+    <div class="card" style="background: #fefce8; border: 1px solid #fef08a;">
+        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h4 style="color: #854d0e; font-size: 15px;">Application is in 'Received' status</h4>
+                <p style="font-size: 13px; color: #a16207;">Mark the nomination under active statutory scrutiny to record examination observations.</p>
+            </div>
+            <form action="{{ url_for('officer_scrutiny', nomination_id=nomination.id) }}" method="POST">
+                <input type="hidden" name="action" value="start_scrutiny">
+                <button type="submit" class="btn btn-warning">
+                    🔍 Mark 'Under Active Scrutiny'
+                </button>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Scrutiny Checklist Card -->
+<div class="card">
+    <div class="card-header">
+        <h3>1. Statutory Eligibility &amp; Compliance Checklist</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Compliance Parameter</th>
+                        <th>Declared Information</th>
+                        <th>Statutory Requirement</th>
+                        <th>Compliance Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Age Qualification</strong></td>
+                        <td>{{ nomination.age or 'N/A' }} years (DOB: {{ nomination.date_of_birth.strftime('%d-%b-%Y') if nomination.date_of_birth else 'N/A' }})</td>
+                        <td>Min {{ nomination.election.min_age }} years (Article 84/173 of Constitution)</td>
+                        <td>
+                            {% if nomination.age and nomination.age >= nomination.election.min_age %}
+                                <span class="status-badge accepted">Qualified ({{ nomination.age }} yrs)</span>
+                            {% else %}
+                                <span class="status-badge rejected">Disqualified (Underage)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Electoral Roll Inclusion</strong></td>
+                        <td>EPIC: {{ nomination.epic_number }} (Part {{ nomination.electoral_roll_part_no }}, Sl {{ nomination.electoral_roll_serial_no }})</td>
+                        <td>Must be an elector in parliamentary/assembly roll (Sec 4/5 RPA 1951)</td>
+                        <td><span class="status-badge accepted">Elector Verified</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Security Deposit</strong></td>
+                        <td>₹ {{ '{:,.2f}'.format(nomination.security_deposit_amount) }} (Challan: {{ nomination.security_deposit_ref or 'Pending' }})</td>
+                        <td>Sec 34 RPA 1951: General ₹{{ "{:,.0f}".format(nomination.election.security_deposit_general) }} / SC-ST ₹{{ "{:,.0f}".format(nomination.election.security_deposit_sc_st) }}</td>
+                        <td>
+                            {% if nomination.security_deposit_ref %}
+                                <span class="status-badge accepted">Deposit Lodged</span>
+                            {% else %}
+                                <span class="status-badge rejected">Defective Deposit</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Proposers Requirement</strong></td>
+                        <td>{{ nomination.get_proposers_list()|length }} elector proposer(s) subscribed</td>
+                        <td>{{ nomination.proposers_count }} required (Sec 33 RPA 1951: 1 for Recognized, 10 for Independent)</td>
+                        <td>
+                            {% if nomination.get_proposers_list()|length >= nomination.proposers_count %}
+                                <span class="status-badge accepted">Sufficient Proposers</span>
+                            {% else %}
+                                <span class="status-badge rejected">Insufficient Proposers</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Criminal Disclosures</strong></td>
+                        <td>{{ 'Pending cases declared' if nomination.has_criminal_cases else 'Clean record declared' }}</td>
+                        <td>Affidavit disclosure under Sec 33A of RPA 1951</td>
+                        <td><span class="status-badge accepted">Affidavit Filed</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Document Verification Workspace -->
+<div class="card">
+    <div class="card-header">
+        <h3>2. Evidentiary Document Scrutiny &amp; Verification</h3>
+    </div>
+    <div class="card-body">
+        {% if nomination.documents %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Document Title</th>
+                            <th>File Name</th>
+                            <th>Current State</th>
+                            <th>Officer Remarks</th>
+                            <th style="text-align: right;">Inspector Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in nomination.documents %}
+                            <tr>
+                                <td><strong>{{ doc.title }}</strong></td>
+                                <td>{{ doc.filename }}</td>
+                                <td>
+                                    {% if doc.is_verified %}
+                                        <span class="status-badge accepted">Verified</span>
+                                    {% elif doc.is_flagged %}
+                                        <span class="status-badge rejected">Defective / Flagged</span>
+                                    {% else %}
+                                        <span class="status-badge draft">Uninspected</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.officer_remarks or 'None' }}</td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <form action="{{ url_for('verify_document', doc_id=doc.id) }}" method="POST" style="display: inline-flex; gap: 6px; align-items: center;">
+                                        <input type="text" name="remarks" class="form-control form-control-sm" placeholder="Observation notes..." style="width: 150px;" value="{{ doc.officer_remarks or '' }}">
+                                        
+                                        <button type="submit" name="is_verified" value="1" class="btn btn-success btn-sm" title="Mark Verified">
+                                            ✓ Verify
+                                        </button>
+                                        <button type="submit" name="is_flagged" value="1" class="btn btn-danger btn-sm" title="Flag Defect">
+                                            ⚠ Flag
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="font-size: 13px; color: var(--text-muted);">No documents uploaded for verification.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Formal Returning Officer Scrutiny Order -->
+<div class="card" style="border: 2px solid var(--primary-blue);">
+    <div class="card-header" style="background: #eff6ff;">
+        <h3>3. Record Official Scrutiny Order (Section 36, RPA 1951)</h3>
+    </div>
+    <div class="card-body">
+        {% if not can_record_decision %}
+            <div class="alert alert-warning">
+                <strong>Authorization Restriction:</strong> As an Assistant Returning Officer (ARO), you are not currently 
+                empowered with statutory quasi-judicial authority to sign the final acceptance or rejection order. 
+                Only the designated Returning Officer (RO) or specifically empowered ARO can record this decision.
+            </div>
+        {% else %}
+            <form action="{{ url_for('officer_scrutiny', nomination_id=nomination.id) }}" method="POST">
+                <input type="hidden" name="action" value="record_decision">
+                
+                <div class="form-group">
+                    <label class="form-label required">Scrutiny Judicial Determination</label>
+                    <div style="display: flex; gap: 24px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer;">
+                            <input type="radio" name="decision" value="accepted" {% if nomination.status == 'accepted' %}checked{% endif %} required>
+                            <span class="status-badge accepted" style="padding: 6px 12px;">ACCEPT NOMINATION PAPER</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer;">
+                            <input type="radio" name="decision" value="rejected" {% if nomination.status == 'rejected' %}checked{% endif %} required>
+                            <span class="status-badge rejected" style="padding: 6px 12px;">REJECT NOMINATION PAPER</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label required">Statutory Grounds &amp; Formal Scrutiny Order Remarks</label>
+                    <textarea name="remarks" class="form-control" rows="4" placeholder="Mandatory if rejecting: State specific legal grounds under Section 36(2) of RPA 1951 (e.g. failure to lodge security deposit, defective proposers, disqualification under Article 102/191). If accepted, summarize that papers were found valid upon summary inquiry.">{{ nomination.scrutiny_remarks or '' }}</textarea>
+                    <div class="form-help">This order is stamped on the official acknowledgment receipt and Form 26 PDF summary.</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                    <a href="{{ url_for('officer_dashboard') }}" class="btn btn-secondary">&larr; Back to Scrutiny List</a>
+                    <button type="submit" class="btn btn-primary btn-lg" onclick="return confirm('Confirm recording official scrutiny decision? This will update the public tracking portal and generate statutory audit logs.')">
+                        ⚖️ Record Official Scrutiny Order
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

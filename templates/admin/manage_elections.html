@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Elections & Constituencies - Admin Console{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">Elections &amp; Constituency Configurations</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Configure parliamentary, assembly, council, and local body elections and map constituencies.
+        </p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Return to Admin Dashboard</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 30px;">
+    <!-- Active Elections & Constituencies List -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Configured Election Notifications</h3>
+            </div>
+            <div class="card-body">
+                {% for el in elections %}
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fff;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                            <div>
+                                <h4 style="font-size: 16px; color: var(--primary-blue);">{{ el.title }}</h4>
+                                <span style="font-size: 12px; color: var(--text-secondary);">
+                                    Category: <strong>{{ el.category_label }}</strong> | Year: {{ el.election_year }}
+                                </span>
+                            </div>
+                            <span class="status-badge submitted">{{ el.status.replace('_', ' ').upper() }}</span>
+                        </div>
+
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            {{ el.description or 'No description provided.' }}
+                        </p>
+
+                        <div style="display: flex; gap: 16px; font-size: 12px; margin-bottom: 12px; background: #f8fafc; padding: 8px 12px; border-radius: 6px; flex-wrap: wrap;">
+                            <span><strong>Min Age:</strong> {{ el.min_age }} yrs</span>
+                            <span><strong>Deposit (Gen):</strong> ₹{{ "{:,.0f}".format(el.security_deposit_general) }}</span>
+                            <span><strong>Deposit (SC/ST):</strong> ₹{{ "{:,.0f}".format(el.security_deposit_sc_st) }}</span>
+                        </div>
+
+                        <h5 style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Mapped Constituencies ({{ el.constituencies|length }}):</h5>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            {% for c in el.constituencies %}
+                                <span style="background: #eff6ff; border: 1px solid #bfdbfe; font-size: 12px; padding: 3px 8px; border-radius: 4px; color: var(--primary-blue);">
+                                    📍 {{ c.name }} ({{ c.code }}) - {{ c.constituency_type }}
+                                </span>
+                            {% else %}
+                                <span style="font-size: 12px; color: var(--text-muted);">No constituencies added yet.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Forms Column -->
+    <div>
+        <!-- Create Election Form -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+                <h3>Create New Election</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin_create_election') }}" method="POST">
+                    <div class="form-group">
+                        <label class="form-label required">Election Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Karnataka Legislative Assembly General Election 2026" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Election Category</label>
+                        <select name="category" class="form-control" required>
+                            <option value="lok_sabha">Lok Sabha (House of the People)</option>
+                            <option value="vidhan_sabha">State Legislative Assembly (Vidhan Sabha)</option>
+                            <option value="rajya_sabha">Rajya Sabha (Council of States)</option>
+                            <option value="municipal">Municipal Corporation / Local Body</option>
+                            <option value="panchayat">Panchayati Raj Institution</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required">Year</label>
+                            <input type="number" name="election_year" class="form-control" value="2026" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">Min Age</label>
+                            <input type="number" name="min_age" class="form-control" value="25" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required">Deposit (General)</label>
+                            <input type="number" step="100" name="security_deposit_general" class="form-control" value="25000" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">Deposit (SC/ST)</label>
+                            <input type="number" step="100" name="security_deposit_sc_st" class="form-control" value="12500" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Brief details regarding the election notification"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Create Election Notification</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Constituency Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Add Constituency to Election</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin_create_constituency') }}" method="POST">
+                    <div class="form-group">
+                        <label class="form-label required">Election</label>
+                        <select name="election_id" class="form-control" required>
+                            {% for el in elections %}
+                                <option value="{{ el.id }}">{{ el.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Constituency Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. 07 - South Delhi" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required">Code</label>
+                            <input type="text" name="code" class="form-control" placeholder="PC-07-DL" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">State / UT</label>
+                            <input type="text" name="state" class="form-control" placeholder="NCT of Delhi" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Constituency Reservation Type</label>
+                        <select name="constituency_type" class="form-control" required>
+                            <option value="GEN">General (GEN)</option>
+                            <option value="SC">Scheduled Caste (SC)</option>
+                            <option value="ST">Scheduled Tribe (ST)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Returning Officer Name</label>
+                        <input type="text" name="ro_name" class="form-control" placeholder="Name of DM / RO">
+                    </div>
+
+                    <button type="submit" class="btn btn-secondary" style="width: 100%;">Map Constituency</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

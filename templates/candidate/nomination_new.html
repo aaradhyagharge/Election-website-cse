@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Start Nomination Paper - Step 1{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 20px auto;">
+    <div class="card">
+        <div class="card-header">
+            <h2>Step 1: Select Election &amp; Constituency</h2>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                Choose the election category and the target parliamentary, assembly, or local body constituency 
+                you wish to contest. Statutory eligibility and security deposit requirements will be calibrated accordingly.
+            </p>
+
+            <form action="{{ url_for('nomination_new') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label required">Select Election Notification</label>
+                    <select name="election_id" id="election_select" class="form-control" required>
+                        <option value="">-- Choose an Open Election --</option>
+                        {% for el in elections %}
+                            <option value="{{ el.id }}" data-category="{{ el.category }}" data-min-age="{{ el.min_age }}" data-deposit="{{ el.security_deposit_general }}">
+                                {{ el.title }} [{{ el.category_label }}]
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Contesting Constituency</label>
+                    <select name="constituency_id" id="constituency_select" class="form-control" required>
+                        <option value="">-- First Select an Election above --</option>
+                    </select>
+                    <div class="form-help">Constituencies load dynamically based on the election notification chosen.</div>
+                </div>
+
+                <div class="alert alert-info" style="font-size: 13px; margin-top: 16px;">
+                    <strong>Candidate Checklist Before Proceeding:</strong>
+                    <ul style="margin-left: 20px; margin-top: 6px; line-height: 1.6;">
+                        <li>You must be registered as an elector in any parliamentary/assembly constituency in India.</li>
+                        <li>Possess a valid EPIC / Voter ID number.</li>
+                        <li>Proposers required: 1 elector (for recognized party) or 10 electors (for independent candidates).</li>
+                        <li>Complete disclosure of assets, liabilities, and criminal antecedents under Form 26.</li>
+                    </ul>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+                    <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-secondary">&larr; Back to Dashboard</a>
+                    <button type="submit" class="btn btn-primary btn-lg">Initialize Nomination Draft &rarr;</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

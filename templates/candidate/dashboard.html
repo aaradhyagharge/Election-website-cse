@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Candidate Dashboard - Election Portal{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="font-size: 22px; color: var(--primary-blue);">Candidate Portal Dashboard</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Logged in as: <strong>{{ current_user.full_name }}</strong> (EPIC / ID: {{ current_user.identity_number or 'Not provided' }})
+        </p>
+    </div>
+    <a href="{{ url_for('nomination_new') }}" class="btn btn-primary btn-lg">
+        ➕ File New Nomination Paper
+    </a>
+</div>
+
+<!-- Candidate Summary Cards -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#f1f5f9; color:#475569;">📁</div>
+        <div>
+            <div class="stat-number">{{ nominations|selectattr('status', 'equalto', 'draft')|list|length }}</div>
+            <div class="stat-label">Saved Drafts</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe; color:#2563eb;">📤</div>
+        <div>
+            <div class="stat-number">{{ nominations|selectattr('status', 'equalto', 'submitted')|list|length }}</div>
+            <div class="stat-label">Submitted / Received</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7; color:#d97706;">🔍</div>
+        <div>
+            <div class="stat-number">{{ nominations|selectattr('status', 'equalto', 'under_scrutiny')|list|length }}</div>
+            <div class="stat-label">Under Scrutiny</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#16a34a;">✅</div>
+        <div>
+            <div class="stat-number">{{ nominations|selectattr('status', 'equalto', 'accepted')|list|length }}</div>
+            <div class="stat-label">Accepted Nominations</div>
+        </div>
+    </div>
+</div>
+
+<!-- Nominations List -->
+<div class="card">
+    <div class="card-header">
+        <h3>My Nomination Applications</h3>
+    </div>
+    <div class="card-body">
+        {% if nominations %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Application No</th>
+                            <th>Election &amp; Constituency</th>
+                            <th>Party / Category</th>
+                            <th>Declared Net Worth</th>
+                            <th>Status</th>
+                            <th>Submitted On</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nom in nominations %}
+                            <tr>
+                                <td>
+                                    <strong style="color: var(--primary-blue);">{{ nom.application_number }}</strong>
+                                </td>
+                                <td>
+                                    <strong>{{ nom.election.title }}</strong><br>
+                                    <span style="font-size: 12px; color: var(--text-secondary);">
+                                        Constituency: {{ nom.constituency.name }} ({{ nom.constituency.constituency_type }})
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ nom.party_name or 'Independent' }}<br>
+                                    <span style="font-size: 11px; color: var(--text-muted);">{{ nom.party_type.replace('_', ' ').title() }} ({{ nom.candidate_category }})</span>
+                                </td>
+                                <td>
+                                    {% set net = (nom.total_movable_assets + nom.total_immovable_assets) - nom.total_liabilities %}
+                                    <strong>₹{{ "{:,.2f}".format(net) }}</strong><br>
+                                    <span style="font-size: 11px; color: var(--text-muted);">Assets: ₹{{ "{:,.0f}".format(nom.total_movable_assets + nom.total_immovable_assets) }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ nom.status }}">
+                                        {{ nom.status.replace('_', ' ').upper() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ nom.submission_timestamp.strftime('%d-%b-%Y %I:%M %p') if nom.submission_timestamp else 'Draft (Not Submitted)' }}
+                                </td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    {% if nom.status == 'draft' %}
+                                        <a href="{{ url_for('nomination_edit', nomination_id=nom.id) }}" class="btn btn-warning btn-sm">
+                                            ✏️ Edit Draft
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('nomination_view', nomination_id=nom.id) }}" class="btn btn-secondary btn-sm">
+                                            👁️ View Application
+                                        </a>
+                                        <a href="{{ url_for('download_nomination_pdf', nomination_id=nom.id) }}" class="btn btn-primary btn-sm" title="Download Form 26 PDF">
+                                            📄 Form 26
+                                        </a>
+                                        <a href="{{ url_for('download_receipt_pdf', nomination_id=nom.id) }}" class="btn btn-success btn-sm" title="Download Receipt">
+                                            🧾 Receipt
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 40px; margin-bottom: 12px;">📝</div>
+                <h4>No nominations filed yet</h4>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    You have not started or submitted any nomination forms for active elections.
+                </p>
+                <a href="{{ url_for('nomination_new') }}" class="btn btn-primary">
+                    File First Nomination Paper &rarr;
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

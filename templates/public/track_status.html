@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Track Nomination Status{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 10px auto;">
+    <div class="card">
+        <div class="card-header">
+            <h2>Track Candidate Nomination &amp; Scrutiny Status</h2>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('track_status') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" name="app_no" class="form-control" value="{{ search_query }}" placeholder="Enter Application No. (e.g. ECI-LS2026-DEL-0001)" required>
+                <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Search Status</button>
+            </form>
+
+            {% if nomination %}
+                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Nomination Application No</span>
+                            <h3 style="font-size: 20px; color: var(--primary-blue);">{{ nomination.application_number }}</h3>
+                        </div>
+                        <div>
+                            <span class="status-badge {{ nomination.status }}" style="font-size: 14px; padding: 6px 14px;">
+                                Status: {{ nomination.status.replace('_', ' ').upper() }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-bottom: 20px;">
+                        <div>
+                            <span class="form-label">Candidate Name:</span>
+                            <strong>{{ nomination.candidate.full_name }}</strong>
+                        </div>
+                        <div>
+                            <span class="form-label">Election:</span>
+                            <strong>{{ nomination.election.title }}</strong>
+                        </div>
+                        <div>
+                            <span class="form-label">Constituency:</span>
+                            <strong>{{ nomination.constituency.name }} ({{ nomination.constituency.state }})</strong>
+                        </div>
+                        <div>
+                            <span class="form-label">Party Affiliation:</span>
+                            <strong>{{ nomination.party_name or 'Independent' }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Scrutiny Audit Timeline -->
+                    <h4 style="font-size: 15px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        Statutory Scrutiny Timeline &amp; Decision Record
+                    </h4>
+
+                    <div class="timeline">
+                        <div class="timeline-item completed">
+                            <div class="timeline-time">{{ nomination.created_at.strftime('%d-%b-%Y %I:%M %p') }}</div>
+                            <div class="timeline-title">Nomination Draft Initialized</div>
+                            <div class="timeline-desc">Candidate started Form 26 and nomination particulars for {{ nomination.constituency.name }}.</div>
+                        </div>
+
+                        {% if nomination.submission_timestamp %}
+                            <div class="timeline-item completed">
+                                <div class="timeline-time">{{ nomination.submission_timestamp.strftime('%d-%b-%Y %I:%M %p') }}</div>
+                                <div class="timeline-title">Nomination Submitted &amp; Recorded</div>
+                                <div class="timeline-desc">Form 26 affidavit, deposit reference ({{ nomination.security_deposit_ref or 'Verified' }}), and elector proposers formally lodged.</div>
+                            </div>
+                        {% else %}
+                            <div class="timeline-item">
+                                <div class="timeline-time">Pending</div>
+                                <div class="timeline-title">Awaiting Formal Submission</div>
+                                <div class="timeline-desc">Candidate is currently editing the nomination draft.</div>
+                            </div>
+                        {% endif %}
+
+                        {% if nomination.status in ['under_scrutiny', 'accepted', 'rejected'] %}
+                            <div class="timeline-item completed">
+                                <div class="timeline-time">{{ nomination.submission_timestamp.strftime('%d-%b-%Y %I:%M %p') }}</div>
+                                <div class="timeline-title">Under Scrutiny by Returning Officer</div>
+                                <div class="timeline-desc">Nomination paper, electoral roll cross-check, affidavit disclosures, and objections under active judicial examination.</div>
+                            </div>
+                        {% endif %}
+
+                        {% if nomination.status in ['accepted', 'rejected'] %}
+                            <div class="timeline-item completed">
+                                <div class="timeline-time">{{ nomination.scrutiny_timestamp.strftime('%d-%b-%Y %I:%M %p') if nomination.scrutiny_timestamp else 'Date Recorded' }}</div>
+                                <div class="timeline-title">
+                                    Scrutiny Decision: 
+                                    <span style="color: {% if nomination.status == 'accepted' %}#15803d{% else %}#dc2626{% endif %}; font-weight: 700;">
+                                        {{ nomination.status.upper() }}
+                                    </span>
+                                </div>
+                                <div class="timeline-desc" style="background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 6px;">
+                                    <strong>Returning Officer Order / Grounds:</strong><br>
+                                    {{ nomination.scrutiny_remarks or 'Scrutiny completed in accordance with Section 36 of the Representation of the People Act, 1951.' }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- PDF Generation Links -->
+                    {% if current_user and (current_user.id == nomination.candidate_id or current_user.role in ['ro', 'aro', 'admin']) %}
+                        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="{{ url_for('download_nomination_pdf', nomination_id=nomination.id) }}" class="btn btn-primary btn-sm">
+                                📄 Download Form 26 Affidavit PDF
+                            </a>
+                            <a href="{{ url_for('download_receipt_pdf', nomination_id=nomination.id) }}" class="btn btn-secondary btn-sm">
+                                🧾 Download Acknowledgment Receipt PDF
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Officers - Admin Console{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: var(--primary-blue);">Electoral Officers Management (RO &amp; ARO)</h2>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+            Administer Returning Officers and Assistant Returning Officers, assign constituencies, and manage scrutiny delegations.
+        </p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Return to Admin Dashboard</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 30px;">
+    <!-- Officers List Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Registered Returning &amp; Assistant Returning Officers</h3>
+        </div>
+        <div class="card-body">
+            {% if officers %}
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Officer Name &amp; Designation</th>
+                                <th>Official Email / Mobile</th>
+                                <th>Role</th>
+                                <th>Assigned Constituency</th>
+                                <th>Scrutiny Power</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for off in officers %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ off.full_name }}</strong><br>
+                                        <span style="font-size: 12px; color: var(--text-secondary);">{{ off.designation or 'Officer' }}</span>
+                                    </td>
+                                    <td>
+                                        {{ off.email }}<br>
+                                        <span style="font-size: 12px; color: var(--text-muted);">{{ off.mobile }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge {% if off.role == 'ro' %}accepted{% else %}under_scrutiny{% endif %}">
+                                            {{ off.role.upper() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if off.assigned_constituency %}
+                                            <strong>{{ off.assigned_constituency.name }}</strong><br>
+                                            <span style="font-size: 11px; color: var(--text-muted);">{{ off.assigned_constituency.state }}</span>
+                                        {% else %}
+                                            <span style="color: var(--text-muted);">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if off.role == 'ro' %}
+                                            <span class="status-badge accepted">Full RO Authority</span>
+                                        {% else %}
+                                            {% if off.is_aro_authorized_scrutiny %}
+                                                <span class="status-badge accepted">Authorized by DM</span>
+                                            {% else %}
+                                                <span class="status-badge draft">Verification Only</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted);">No officer accounts found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Provision New Officer Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Provision New Electoral Officer</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin_create_officer') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label required">Officer Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Sh. Rajesh Sharma, IAS" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Official Government / ECI Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="ro.district@eci.gov.in" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Mobile Number</label>
+                    <input type="tel" name="mobile" class="form-control" placeholder="10-digit Official Mobile" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Officer Role</label>
+                    <select name="role" class="form-control" required id="officer_role_select">
+                        <option value="ro">Returning Officer (RO) - Statutory Authority</option>
+                        <option value="aro">Assistant Returning Officer (ARO)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Official Designation</label>
+                    <input type="text" name="designation" class="form-control" placeholder="e.g. District Magistrate & Returning Officer">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Assigned Contesting Constituency</label>
+                    <select name="constituency_id" class="form-control" required>
+                        <option value="">-- Choose Constituency --</option>
+                        {% for c in constituencies %}
+                            <option value="{{ c.id }}">{{ c.name }} ({{ c.state }}) - {{ c.election.category_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" id="aro_auth_box" style="margin-top: 10px;">
+                    <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px;">
+                        <input type="checkbox" name="is_aro_authorized_scrutiny" value="1" style="margin-top: 2px;">
+                        <span>Empower ARO to record statutory scrutiny decisions (Sec 22 RPA 1951)</span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label class="form-label required">Initial Temporary Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                    Create &amp; Assign Officer &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

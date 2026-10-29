@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Candidate Smart Declaration Portal{% endblock %} | Election Academic Prototype</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Academic Demonstration Prototype Disclaimer Banner -->
+    <div class="academic-disclaimer-bar">
+        <span class="badge">ACADEMIC PROTOTYPE</span>
+        <span>For College Demonstration &amp; Viva Simulation Only — Not Connected to Official Government Systems</span>
+    </div>
+
+    <!-- Main Header -->
+    <header class="main-header">
+        <div class="tricolor-strip"></div>
+        <div class="header-container">
+            <a href="{{ url_for('index') }}" class="brand-wrapper">
+                <div class="brand-emblem">⚖️</div>
+                <div class="brand-titles">
+                    <h1>Election Candidate Smart Declaration Portal</h1>
+                    <p>Nomination Filing, Smart Affidavit &amp; Returning Officer Scrutiny System</p>
+                </div>
+            </a>
+            <nav class="main-nav">
+                <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+                <a href="{{ url_for('track_status') }}" class="nav-link">Track Application</a>
+                
+                {% if current_user %}
+                    {% if current_user.role == 'candidate' %}
+                        <a href="{{ url_for('candidate_dashboard') }}" class="nav-link">Candidate Portal</a>
+                    {% elif current_user.role in ['ro', 'aro'] %}
+                        <a href="{{ url_for('officer_dashboard') }}" class="nav-link">Scrutiny Desk ({{ current_user.role.upper() }})</a>
+                    {% elif current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin Console</a>
+                    {% endif %}
+                    
+                    <div class="nav-user-pill">
+                        <span>👤 {{ current_user.full_name }}</span>
+                        <span style="font-size: 11px; opacity: 0.8;">({{ current_user.role.upper() }})</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Sign Out</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Officer / Candidate Sign In</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-secondary btn-sm">Candidate Register</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="page-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alerts-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                            <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-size:16px;">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-col">
+                <h4>Smart Declaration System</h4>
+                <p>Designed and built as a Computer Science &amp; Engineering project demonstrating digital election nomination filing, dynamic Form 26 affidavits, and role-based statutory scrutiny.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Statutory Legal Framework</h4>
+                <p>Simulating procedures under the Representation of the People Act, 1951, Conduct of Elections Rules, 1961, and Election Commission of India guidelines for Lok Sabha, Vidhan Sabha, and Local Body elections.</p>
+            </div>
+            <div class="footer-col">
+                <h4>User Roles Simulated</h4>
+                <ul style="list-style: none; line-height: 1.8;">
+                    <li>🔹 <strong>Candidate:</strong> Registration, Form 26, Asset declaration</li>
+                    <li>🔹 <strong>Returning Officer (RO):</strong> Statutory scrutiny &amp; decisions</li>
+                    <li>🔹 <strong>Assistant RO (ARO):</strong> Verification &amp; authorized duties</li>
+                    <li>🔹 <strong>System Admin:</strong> Officer assignment &amp; election configuration</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {{ current_year }} Election Candidate Smart Declaration Portal (College Prototype). Developed for Academic Evaluation.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

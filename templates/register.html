@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Candidate Self-Registration - Election Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 20px auto;">
+    <div class="card">
+        <div class="card-header" style="display: block; text-align: center;">
+            <h2>Candidate Registration</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                Create your verified candidate profile to file election nominations &amp; Form 26 affidavits
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info" style="font-size: 13px;">
+                <strong>Role Notice:</strong> This registration portal is strictly for election candidates. 
+                Returning Officers (RO) and Assistant Returning Officers (ARO) are officially created and assigned 
+                constituencies by the Chief System Administrator.
+            </div>
+
+            <form action="{{ url_for('register') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label required">Candidate Full Legal Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="As enrolled in Electoral Roll" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="candidate@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Mobile Number</label>
+                        <input type="tel" name="mobile" class="form-control" placeholder="10-digit Mobile" pattern="[0-9]{10}" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Primary Identity Proof</label>
+                        <select name="identity_type" class="form-control" required>
+                            <option value="EPIC / Voter ID">EPIC / Voter ID Card (Mandatory for Indian Elections)</option>
+                            <option value="Aadhaar Card">Aadhaar Card</option>
+                            <option value="PAN Card">PAN Card</option>
+                            <option value="Indian Passport">Indian Passport</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Identity / EPIC Number</label>
+                        <input type="text" name="identity_number" class="form-control" placeholder="e.g. DL/04/040/012984" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Set Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="At least 6 characters" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Confirm Password</label>
+                        <input type="password" name="confirm_password" class="form-control" placeholder="Repeat Password" minlength="6" required>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; font-size: 13px; color: var(--text-secondary);">
+                    <label style="display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" required style="margin-top: 3px;">
+                        <span>I understand that this candidate profile is part of an academic demonstration simulation under Representation of the People Act guidelines.</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    Complete Candidate Registration &rarr;
+                </button>
+            </form>
+        </div>
+        <div class="card-footer" style="justify-content: center; font-size: 13px;">
+            <span>Already registered? <a href="{{ url_for('login') }}" style="color: var(--primary-blue); font-weight: 600;">Sign In to Candidate Dashboard</a></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
